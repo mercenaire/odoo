@@ -21,8 +21,7 @@
 
 """
 
-import datetime
-
+from datetime import datetime
 import collections
 import dateutil
 import functools
@@ -2931,8 +2930,10 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             Attachment = self.env['ir.attachment']
 
             for sub_ids in cr.split_for_in_conditions(self.ids):
+                startTimer = datetime.now()
                 query = "DELETE FROM %s WHERE id IN %%s" % self._table
                 cr.execute(query, (sub_ids,))
+                odoo.tools.log_message("5", (datetime.now() - startTimer).microseconds)
 
                 # Removing the ir_model_data reference if the record being deleted
                 # is a record created by xml/csv file, as these are not connected
@@ -3187,7 +3188,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             )
             params = tuple(u[2] for u in updates if len(u) > 2)
             for sub_ids in cr.split_for_in_conditions(set(self.ids)):
+                startTimer = datetime.now()
                 cr.execute(query, params + (sub_ids,))
+                odoo.tools.log_message("5", (datetime.now() - startTimer).microseconds)
                 if cr.rowcount != len(sub_ids):
                     raise MissingError(_('One of the records you are trying to modify has already been deleted (Document type: %s).') % self._description)
 
@@ -3456,16 +3459,18 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             updates.append(('write_date', "(now() at time zone 'UTC')"))
 
         # insert a row for this record
+        startTimer = datetime.now()
         cr = self._cr
         query = """INSERT INTO "%s" (%s) VALUES(%s) RETURNING id""" % (
                 self._table,
                 ', '.join('"%s"' % u[0] for u in updates),
                 ', '.join(u[1] for u in updates),
             )
-        cr.execute(query, tuple(u[2] for u in updates if len(u) > 2))
-
+        cr.execute(query, tuple(u[2] for u in updates if len(u) > 2))        
+        
         # from now on, self is the new record
         id_new, = cr.fetchone()
+        odoo.tools.log_message("5", (datetime.now() - startTimer).microseconds)
         self = self.browse(id_new)
 
         if self._parent_store and not self._context.get('defer_parent_store_computation'):
@@ -3537,7 +3542,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                 if field.store and field.column_type and field.translate is True:
                     tname = "%s,%s" % (self._name, name)
                     self.env['ir.translation']._set_ids(tname, 'model', self.env.lang, self.ids, val, val)
-
+                    
         return id_new
 
     # TODO: ameliorer avec NULL
@@ -3781,16 +3786,20 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             # Ignore order, limit and offset when just counting, they don't make sense and could
             # hurt performance
             query_str = 'SELECT count(1) FROM ' + from_clause + where_str
+            startTimer = datetime.now()
             self._cr.execute(query_str, where_clause_params)
             res = self._cr.fetchone()
+            odoo.tools.log_message("5", (datetime.now() - startTimer).microseconds)
             return res[0]
 
         limit_str = limit and ' limit %d' % limit or ''
         offset_str = offset and ' offset %d' % offset or ''
         query_str = 'SELECT "%s".id FROM ' % self._table + from_clause + where_str + order_by + limit_str + offset_str
+        startTimer = datetime.now()
         self._cr.execute(query_str, where_clause_params)
         res = self._cr.fetchall()
-
+        
+        odoo.tools.log_message("5", (datetime.now() - startTimer).microseconds)
         # TDE note: with auto_join, we could have several lines about the same result
         # i.e. a lead with several unread messages; we uniquify the result using
         # a fast way to do it while preserving order (http://www.peterbe.com/plog/uniqifiers-benchmark)
