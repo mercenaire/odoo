@@ -11,6 +11,7 @@ import logging
 import sys
 import threading
 import traceback
+from datetime import datetime
 
 
 try:
@@ -108,6 +109,7 @@ def wsgi_xmlrpc(environ, start_response):
     /xmlrpc/2/<service> is a new route that returns faultCode as int and is
     therefore fully compliant.
     """
+    startTimer = datetime.now()
     if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'].startswith('/xmlrpc/'):
         length = int(environ['CONTENT_LENGTH'])
         data = environ['wsgi.input'].read(length)
@@ -117,12 +119,16 @@ def wsgi_xmlrpc(environ, start_response):
         service = environ['PATH_INFO'][len('/xmlrpc/'):]
         if environ['PATH_INFO'].startswith('/xmlrpc/2/'):
             service = service[len('2/'):]
-            string_faultcode = False
-
+            string_faultcode = False       
         params, method = xmlrpclib.loads(data)
+        odoo.tools.log_message("3", (datetime.now() - startTimer).microseconds)
+
         try:
+            startTimer = datetime.now()
             result = odoo.http.dispatch_rpc(service, method, params)
             response = xmlrpclib.dumps((result,), methodresponse=1, allow_none=False)
+            odoo.tools.log_message("4", (datetime.now() - startTimer).microseconds)
+
         except Exception as e:
             if string_faultcode:
                 response = xmlrpc_handle_exception_string(e)
