@@ -293,6 +293,10 @@ class SaleOrder(models.Model):
         result = super(SaleOrder, self).create(vals)
         return result
 
+    @api.model
+    def do_something_for_ruma(self):
+        print("Called")
+
     @api.multi
     def copy_data(self, default=None):
         if default is None:
