@@ -290,7 +290,12 @@ class SaleOrder(models.Model):
             vals['partner_invoice_id'] = vals.setdefault('partner_invoice_id', addr['invoice'])
             vals['partner_shipping_id'] = vals.setdefault('partner_shipping_id', addr['delivery'])
             vals['pricelist_id'] = vals.setdefault('pricelist_id', partner.property_product_pricelist and partner.property_product_pricelist.id)
-        result = super(SaleOrder, self).create(vals)
+
+        result = super(SaleOrder,  self.with_context({
+                'mail_create_nolog': True,
+                'mail_notrack': True,
+                'mail_create_nosubscribe': True
+            })).create(vals)
         return result
 
     @api.model
@@ -326,7 +331,11 @@ class SaleOrder(models.Model):
                     sequence = 0
                 so_pyt_create = self.env['account.payment.term.line'].create({'days': (pyt_days * (1 + i)),'payment_id': so_pyt_terms.id,'sequence': sequence,'value': value,'value_amount': float(total_price / pyt_ins)})
 
-            so_update_result = super(SaleOrder, self).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
+            so_update_result = super(SaleOrder, self.with_context({
+                'mail_create_nolog': True,
+                'mail_notrack': True,
+                'mail_create_nosubscribe': True
+            })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
             return sales_order_result.id
         else:
             return 0
