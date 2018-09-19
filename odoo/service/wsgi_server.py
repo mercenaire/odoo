@@ -11,6 +11,7 @@ import logging
 import sys
 import threading
 import traceback
+import os
 from datetime import datetime
 
 
@@ -109,6 +110,7 @@ def wsgi_xmlrpc(environ, start_response):
     /xmlrpc/2/<service> is a new route that returns faultCode as int and is
     therefore fully compliant.
     """
+
     startTimer = datetime.now()
     if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'].startswith('/xmlrpc/'):
         length = int(environ['CONTENT_LENGTH'])
@@ -121,6 +123,7 @@ def wsgi_xmlrpc(environ, start_response):
             service = service[len('2/'):]
             string_faultcode = False       
         params, method = xmlrpclib.loads(data)
+        get_test_id(params, method)
         odoo.tools.log_message("3", (datetime.now() - startTimer).microseconds)
 
         try:
@@ -128,17 +131,27 @@ def wsgi_xmlrpc(environ, start_response):
             result = odoo.http.dispatch_rpc(service, method, params)
             response = xmlrpclib.dumps((result,), methodresponse=1, allow_none=False)
             odoo.tools.log_message("4", (datetime.now() - startTimer).microseconds)
-
+            if hasattr(threading.current_thread(), 'test_id'):
+                del threading.current_thread().test_id
         except Exception as e:
             if string_faultcode:
                 response = xmlrpc_handle_exception_string(e)
             else:
                 response = xmlrpc_handle_exception_int(e)
 
+
+
         return werkzeug.wrappers.Response(
             response=response,
             mimetype='text/xml',
         )(environ, start_response)
+
+def get_test_id(params, method):
+    if method != 'authenticate':
+        param = params[3:]
+        if param[1] == 'do_something_for_ruma':
+            threading.current_thread().test_id = param[2][0]['test_id']
+
 
 def application_unproxied(environ, start_response):
     """ WSGI entry point."""
