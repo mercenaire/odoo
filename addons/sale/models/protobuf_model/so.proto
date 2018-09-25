@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+message SalesModel {
+
+message PartnerDetail {
+    int32 id = 1;
+    string name = 2;
+}
+
+message ProductDetail {
+    string sku = 1;
+    int32 qty = 2;
+}
+
+message PaymentDetail {
+    int32 installments = 1;
+    int32 interval_days = 2;
+}
+
+     PartnerDetail partner_detail = 1;
+     ProductDetail product_details = 2;
+     PaymentDetail payment_details = 3;
+     int32 test_id = 4;
+
+}

@@ -13,6 +13,7 @@ import threading
 import traceback
 import os
 from datetime import datetime
+from odoo.so_pb2 import SalesModel
 
 
 try:
@@ -150,7 +151,9 @@ def get_test_id(params, method):
     if method != 'authenticate':
         param = params[3:]
         if param[1] == 'do_something_for_ruma':
-            threading.current_thread().test_id = param[2][0]['test_id']
+            so_model = SalesModel()
+            so_model.ParseFromString(bytes(param[2][0]['protoBuf_message']))
+            threading.current_thread().test_id = so_model.test_id
 
 
 def application_unproxied(environ, start_response):

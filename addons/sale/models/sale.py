@@ -7,6 +7,8 @@ from itertools import groupby
 from datetime import datetime, timedelta
 from werkzeug.urls import url_encode
 
+from odoo.so_pb2 import SalesModel
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, AccessError
 from odoo.osv import expression
@@ -300,45 +302,53 @@ class SaleOrder(models.Model):
 
     @api.model
     def do_something_for_ruma(self, vals):
-        total_price = 0.0
-        value = ""
-        sequence = 0
-        if any(vals):
-            pyt_ins = vals['payment_details']['Installments']
-            pyt_days = vals['payment_details']['IntervaldDays']
-            sales_order_result = self.create({'partner_id': vals["partner_id"]["Id"]})
-            pro_search_result = self.env['product.product'].sudo().search_read(domain=[('default_code', '=', vals["product_details"]["Sku"])], fields=['id', 'name'])
-            so_line_ordered = self.env['sale.order.line'].create({
-                'name': pro_search_result[0]['name'],
-                'product_id': pro_search_result[0]['id'],
-                'qty_to_invoice': vals["product_details"]["Qty"],
-                'order_id': sales_order_result.id,
-                'order_partner_id': vals["partner_id"]["Id"]
-            })
-            order_lines_total = self.env['sale.order.line'].sudo().search_read(domain=[('order_id', '=', sales_order_result.id)], fields=["price_total"])
-            for k in order_lines_total:
-                total_price += k['price_total']
+      value = ""
+      sequence = 0
+      so_model = SalesModel()
+      so_model.ParseFromString(bytes(vals["protoBuf_message"]))
+      total_price = 0.0
+      if so_model is not None:
+          pyt_ins = so_model.payment_details.installments
+          pyt_days = so_model.payment_details.interval_days
+          sales_order_result = self.create({'partner_id': so_model.partner_detail.id})
+          pro_search_result = self.env['product.product'].sudo().search_read(
+              domain=[('default_code', '=', so_model.product_details.sku)], fields=['id', 'name'])
+          so_line_ordered = self.env['sale.order.line'].create({
+              'name': pro_search_result[0]['name'],
+              'product_id': pro_search_result[0]['id'],
+              'qty_to_invoice': so_model.product_details.qty,
+              'order_id': sales_order_result.id,
+              'order_partner_id': so_model.partner_detail.id
+          })
+          order_lines_total = self.env['sale.order.line'].sudo().search_read(
+              domain=[('order_id', '=', sales_order_result.id)], fields=["price_total"])
+          for k in order_lines_total:
+              total_price += k['price_total']
 
-            so_pyt_terms = self.env['account.payment.term'].create({'name': "Arisan Payment, SO" +  str(sales_order_result.id),'active': True})
-            so_ptl_unlink = self.env['account.payment.term.line'].search([('payment_id', '=', so_pyt_terms.id)]).unlink()
+          so_pyt_terms = self.env['account.payment.term'].create(
+              {'name': "Arisan Payment, SO" + str(sales_order_result.id), 'active': True})
+          so_ptl_unlink = self.env['account.payment.term.line'].search([('payment_id', '=', so_pyt_terms.id)]).unlink()
 
-            for i in range(pyt_ins):
-                if i != pyt_ins - 1 :
-                    value = "fixed"
-                    sequence = i+1
-                else:
-                    value = "balance"
-                    sequence = 0
-                so_pyt_create = self.env['account.payment.term.line'].create({'days': (pyt_days * (1 + i)),'payment_id': so_pyt_terms.id,'sequence': sequence,'value': value,'value_amount': float(total_price / pyt_ins)})
+          for i in range(pyt_ins):
+              if i != pyt_ins - 1:
+                  value = "fixed"
+                  sequence = i + 1
+              else:
+                  value = "balance"
+                  sequence = 0
+              so_pyt_create = self.env['account.payment.term.line'].create(
+                  {'days': (pyt_days * (1 + i)), 'payment_id': so_pyt_terms.id, 'sequence': sequence, 'value': value,
+                   'value_amount': float(total_price / pyt_ins)})
 
-            so_update_result = super(SaleOrder, self.with_context({
-                'mail_create_nolog': True,
-                'mail_notrack': True,
-                'mail_create_nosubscribe': True
-            })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
-            return sales_order_result.id
-        else:
-            return 0
+          so_update_result = super(SaleOrder, self.with_context({
+              'mail_create_nolog': True,
+              'mail_notrack': True,
+              'mail_create_nosubscribe': True
+          })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
+          return sales_order_result.id
+      else:
+          return 0
+
 
     @api.multi
     def copy_data(self, default=None):
