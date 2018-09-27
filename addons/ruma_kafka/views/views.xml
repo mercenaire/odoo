@@ -1,0 +1,60 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+    <!--
+    <record model="ir.ui.view" id="ruma_kafka.list">
+      <field name="name">ruma_kafka list</field>
+      <field name="model">ruma_kafka.ruma_kafka</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="value"/>
+          <field name="value2"/>
+        </tree>
+      </field>
+    </record>
+    -->
+
+    <!-- actions opening views on models -->
+    <!--
+    <record model="ir.actions.act_window" id="ruma_kafka.action_window">
+      <field name="name">ruma_kafka window</field>
+      <field name="res_model">ruma_kafka.ruma_kafka</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+    -->
+
+    <!-- server action to the one above -->
+    <!--
+    <record model="ir.actions.server" id="ruma_kafka.action_server">
+      <field name="name">ruma_kafka server</field>
+      <field name="model_id" ref="model_ruma_kafka_ruma_kafka"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "tree,form",
+          "res_model": self._name,
+        }
+      </field>
+    </record>
+    -->
+
+    <!-- Top menu item -->
+    <!--
+    <menuitem name="ruma_kafka" id="ruma_kafka.menu_root"/>
+    -->
+    <!-- menu categories -->
+    <!--
+    <menuitem name="Menu 1" id="ruma_kafka.menu_1" parent="ruma_kafka.menu_root"/>
+    <menuitem name="Menu 2" id="ruma_kafka.menu_2" parent="ruma_kafka.menu_root"/>
+    -->
+    <!-- actions -->
+    <!--
+    <menuitem name="List" id="ruma_kafka.menu_1_list" parent="ruma_kafka.menu_1"
+              action="ruma_kafka.action_window"/>
+    <menuitem name="Server to list" id="ruma_kafka" parent="ruma_kafka.menu_2"
+              action="ruma_kafka.action_server"/>
+    -->
+  </data>
+</odoo>

@@ -69,5 +69,6 @@
             <field name="pagebreak" eval="False"></field>
             <field name="sequence">10</field>
         </record>
+
     </data>
 </odoo>

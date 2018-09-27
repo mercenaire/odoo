@@ -25,6 +25,13 @@ class SaleOrder(models.Model):
     _description = "Quotation"
     _order = 'date_order desc, id desc'
 
+    @api.model
+    def start_kafka(self):  # method of this model
+        sales_order_result = self.env['sale.order'].create({'partner_id': 20})
+        print(sales_order_result)
+        pass
+
+
     @api.depends('order_line.price_total')
     def _amount_all(self):
         """
