@@ -5,6 +5,7 @@ from . import models
 from . import controllers
 from . import report
 from . import wizard
+import threading
 
 from functools import partial
 import odoo
@@ -22,3 +23,12 @@ def uninstall_hook(cr, registry):
                     rec._onchange_team_type()
 
     cr.after("commit", partial(update_dashboard_graph_model, cr.dbname))
+
+def post_load_sale():
+    dbname = threading.currentThread().dbname
+    db = odoo.sql_db.db_connect(dbname)
+    odoo.registry(dbname).check_signaling()
+    with odoo.api.Environment.manage(), db.cursor() as cr:
+            env = odoo.api.Environment(cr, SUPERUSER_ID, {})
+            # sales_order_result = env['sale.order'].create({'partner_id': 20})
+            # print(sales_order_result)

@@ -39,4 +39,5 @@ This module contains all the common features of Sales Management and eCommerce.
     'css': ['static/src/css/sale.css'],
     'installable': True,
     'auto_install': False,
+    'post_load':'post_load_sale'
 }
