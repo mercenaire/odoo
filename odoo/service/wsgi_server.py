@@ -125,13 +125,13 @@ def wsgi_xmlrpc(environ, start_response):
             string_faultcode = False       
         params, method = xmlrpclib.loads(data)
         get_test_id(params, method)
-        odoo.tools.log_message("3", (datetime.now() - startTimer).microseconds)
+        # odoo.tools.log_message("3", (datetime.now() - startTimer).microseconds)
 
         try:
             startTimer = datetime.now()
             result = odoo.http.dispatch_rpc(service, method, params)
             response = xmlrpclib.dumps((result,), methodresponse=1, allow_none=False)
-            odoo.tools.log_message("4", (datetime.now() - startTimer).microseconds)
+            # odoo.tools.log_message("4", (datetime.now() - startTimer).microseconds)
             if hasattr(threading.current_thread(), 'test_id'):
                 del threading.current_thread().test_id
         except Exception as e:

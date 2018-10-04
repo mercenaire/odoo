@@ -2,9 +2,11 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import uuid
+import time
 
 from itertools import groupby
 from datetime import datetime, timedelta
+import threading
 from werkzeug.urls import url_encode
 
 from odoo.so_pb2 import SalesModel
@@ -12,12 +14,12 @@ from odoo.so_pb2 import SalesModel
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, AccessError
 from odoo.osv import expression
-from odoo.tools import float_is_zero, float_compare, DEFAULT_SERVER_DATETIME_FORMAT
-
-from odoo.tools.misc import formatLang
-
+from odoo.tools import float_is_zero, float_compare, DEFAULT_SERVER_DATETIME_FORMAT, odoo
+from kafka import KafkaConsumer, KafkaProducer
 from odoo.addons import decimal_precision as dp
+from kafka import TopicPartition
 
+kafka_started = False
 
 class SaleOrder(models.Model):
     _name = "sale.order"
@@ -26,10 +28,93 @@ class SaleOrder(models.Model):
     _order = 'date_order desc, id desc'
 
     @api.model
-    def start_kafka(self):  # method of this model
-        sales_order_result = self.env['sale.order'].create({'partner_id': 20})
-        print(sales_order_result)
+    def start_kafka(self):
+        print('Reached start_kafka')
+
+        global kafka_started
+        if kafka_started == False:
+            kafka_started = True
+            self.start_consumer_thread()
         pass
+
+    def start_consumer_thread(self):
+        threaded_start_consumer = threading.Thread(target=self.consume_protobuf_msg)
+        threaded_start_consumer.start()
+
+    @api.model
+    def consume_protobuf_msg(self):
+            try:
+                consumer = KafkaConsumer(auto_offset_reset='latest',bootstrap_servers='localhost:9092', group_id='odoo')
+                consumer.subscribe(['salecreateevent'])
+                while (True):
+                    for message in consumer:
+                        threaded_create_order = threading.Thread(target=self.do_something_for_ruma, args=([message.value]))
+                        threaded_create_order.start()
+
+            except Exception as e:
+                print(e)
+
+    @api.model
+    def do_something_for_ruma(self, message):
+        with api.Environment.manage():
+            try:
+                new_cr = self.pool.cursor()
+                self = self.with_env(self.env(cr=new_cr))
+                value = ""
+                sequence = 0
+                so_model = SalesModel()
+                startTimer = datetime.now()
+                so_model.ParseFromString(bytes(message))
+                odoo.tools.log_message_kafka("1", (datetime.now() - startTimer).microseconds, so_model.test_id, False)
+                threading.current_thread().test_id = so_model.test_id
+                startTimer = datetime.now()
+                total_price = 0.0
+                if so_model is not None:
+                      pyt_ins = so_model.payment_details.installments
+                      pyt_days = so_model.payment_details.interval_days
+                      sales_order_result = self.create({'partner_id': so_model.partner_detail.id})
+                      pro_search_result = self.env['product.product'].sudo().search_read(
+                          domain=[('default_code', '=', so_model.product_details.sku)], fields=['id', 'name'])
+                      so_line_ordered = self.env['sale.order.line'].create({
+                          'name': pro_search_result[0]['name'],
+                          'product_id': pro_search_result[0]['id'],
+                          'qty_to_invoice': so_model.product_details.qty,
+                          'order_id': sales_order_result.id,
+                          'order_partner_id': so_model.partner_detail.id
+                      })
+                      order_lines_total = self.env['sale.order.line'].sudo().search_read(
+                          domain=[('order_id', '=', sales_order_result.id)], fields=["price_total"])
+                      for k in order_lines_total:
+                          total_price += k['price_total']
+
+                      so_pyt_terms = self.env['account.payment.term'].create(
+                          {'name': "Arisan Payment, SO" + str(sales_order_result.id), 'active': True})
+                      so_ptl_unlink = self.env['account.payment.term.line'].search([('payment_id', '=', so_pyt_terms.id)]).unlink()
+
+                      for i in range(pyt_ins):
+                          if i != pyt_ins - 1:
+                              value = "fixed"
+                              sequence = i + 1
+                          else:
+                              value = "balance"
+                              sequence = 0
+                          so_pyt_create = self.env['account.payment.term.line'].create(
+                                            {'days': (pyt_days * (1 + i)), 'payment_id': so_pyt_terms.id, 'sequence': sequence, 'value': value,
+                                            'value_amount': float(total_price / pyt_ins)})
+
+                      so_update_result = super(SaleOrder, self.with_context({
+                          'mail_create_nolog': True,
+                          'mail_notrack': True,
+                          'mail_create_nosubscribe': True
+                      })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
+                      print(so_model.is_done)
+                      odoo.tools.log_message_kafka("2", (datetime.now() - startTimer).microseconds, so_model.test_id, so_model.is_done)
+                      new_cr.close()
+                      return sales_order_result.id
+                else:
+                      return 0
+            except Exception as e:
+                print(e)
 
 
     @api.depends('order_line.price_total')
@@ -306,55 +391,6 @@ class SaleOrder(models.Model):
                 'mail_create_nosubscribe': True
             })).create(vals)
         return result
-
-    @api.model
-    def do_something_for_ruma(self, vals):
-      value = ""
-      sequence = 0
-      so_model = SalesModel()
-      so_model.ParseFromString(bytes(vals["protoBuf_message"]))
-      total_price = 0.0
-      if so_model is not None:
-          pyt_ins = so_model.payment_details.installments
-          pyt_days = so_model.payment_details.interval_days
-          sales_order_result = self.create({'partner_id': so_model.partner_detail.id})
-          pro_search_result = self.env['product.product'].sudo().search_read(
-              domain=[('default_code', '=', so_model.product_details.sku)], fields=['id', 'name'])
-          so_line_ordered = self.env['sale.order.line'].create({
-              'name': pro_search_result[0]['name'],
-              'product_id': pro_search_result[0]['id'],
-              'qty_to_invoice': so_model.product_details.qty,
-              'order_id': sales_order_result.id,
-              'order_partner_id': so_model.partner_detail.id
-          })
-          order_lines_total = self.env['sale.order.line'].sudo().search_read(
-              domain=[('order_id', '=', sales_order_result.id)], fields=["price_total"])
-          for k in order_lines_total:
-              total_price += k['price_total']
-
-          so_pyt_terms = self.env['account.payment.term'].create(
-              {'name': "Arisan Payment, SO" + str(sales_order_result.id), 'active': True})
-          so_ptl_unlink = self.env['account.payment.term.line'].search([('payment_id', '=', so_pyt_terms.id)]).unlink()
-
-          for i in range(pyt_ins):
-              if i != pyt_ins - 1:
-                  value = "fixed"
-                  sequence = i + 1
-              else:
-                  value = "balance"
-                  sequence = 0
-              so_pyt_create = self.env['account.payment.term.line'].create(
-                  {'days': (pyt_days * (1 + i)), 'payment_id': so_pyt_terms.id, 'sequence': sequence, 'value': value,
-                   'value_amount': float(total_price / pyt_ins)})
-
-          so_update_result = super(SaleOrder, self.with_context({
-              'mail_create_nolog': True,
-              'mail_notrack': True,
-              'mail_create_nosubscribe': True
-          })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
-          return sales_order_result.id
-      else:
-          return 0
 
 
     @api.multi
@@ -904,7 +940,6 @@ class SaleOrderLine(models.Model):
 
     @api.model
     def create(self, values):
-        print(values)
         values.update(self._prepare_add_missing_fields(values))
         line = super(SaleOrderLine, self).create(values)
         if line.order_id.state == 'sale':

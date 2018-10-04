@@ -21,5 +21,6 @@ message PaymentDetail {
      ProductDetail product_details = 2;
      PaymentDetail payment_details = 3;
      int32 test_id = 4;
+     bool is_done = 5;
 
 }
