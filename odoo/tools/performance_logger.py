@@ -3,7 +3,7 @@ import logging
 from kafka import KafkaProducer
 import re
 import time
-
+from odoo.tools.kafka_config import KAFKA_CONN,KAFKA_TEST_TOPIC
 
 # Create and configure logger
 import threading
@@ -18,7 +18,7 @@ logger = logging.getLogger()
 # Setting the threshold of logger to DEBUG
 logger.setLevel(logging.INFO)
 
-producer = KafkaProducer(bootstrap_servers=['localhost:9092'])
+producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN])
 
 # def log_message(action_name, total_time):
 #     if hasattr(threading.current_thread(), 'test_id'):
@@ -60,7 +60,7 @@ def log_message_kafka(action_name, total_time, test_id, is_done):
                 message = "Something went wrong when processing the test results for Test Id {0} \n" \
                           "More Information {1}".format(test_id, e)
             # producer.send('test_completed', message.encode())
-            producer.send('testresultevent',  message.encode())
+            producer.send(KAFKA_TEST_TOPIC,  message.encode())
 
 
 

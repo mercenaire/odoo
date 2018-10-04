@@ -17,7 +17,7 @@ from odoo.osv import expression
 from odoo.tools import float_is_zero, float_compare, DEFAULT_SERVER_DATETIME_FORMAT, odoo
 from kafka import KafkaConsumer, KafkaProducer
 from odoo.addons import decimal_precision as dp
-from kafka import TopicPartition
+from odoo.tools.kafka_config import KAFKA_CONN,KAFKA_SALE_TOPIC
 
 kafka_started = False
 
@@ -44,8 +44,8 @@ class SaleOrder(models.Model):
     @api.model
     def consume_protobuf_msg(self):
             try:
-                consumer = KafkaConsumer(auto_offset_reset='latest',bootstrap_servers='localhost:9092', group_id='odoo')
-                consumer.subscribe(['salecreateevent'])
+                consumer = KafkaConsumer(auto_offset_reset='latest',bootstrap_servers=KAFKA_CONN, group_id='odoo')
+                consumer.subscribe([KAFKA_SALE_TOPIC])
                 while (True):
                     for message in consumer:
                         threaded_create_order = threading.Thread(target=self.do_something_for_ruma, args=([message.value]))
