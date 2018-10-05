@@ -18,7 +18,7 @@ logger = logging.getLogger()
 # Setting the threshold of logger to DEBUG
 logger.setLevel(logging.INFO)
 
-producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN])
+producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN], api_version=(0, 10, 1))
 
 # def log_message(action_name, total_time):
 #     if hasattr(threading.current_thread(), 'test_id'):

@@ -44,7 +44,7 @@ class SaleOrder(models.Model):
     @api.model
     def consume_protobuf_msg(self):
             try:
-                consumer = KafkaConsumer(auto_offset_reset='latest',bootstrap_servers=KAFKA_CONN, group_id='odoo')
+                consumer = KafkaConsumer(auto_offset_reset='latest',bootstrap_servers=KAFKA_CONN, group_id='odoo',api_version=(0, 10, 1))
                 consumer.subscribe([KAFKA_SALE_TOPIC])
                 while (True):
                     for message in consumer:
