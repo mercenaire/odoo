@@ -4,6 +4,7 @@ from kafka import KafkaProducer
 import re
 import time
 from odoo.tools.kafka_config import KAFKA_CONN,KAFKA_TEST_TOPIC
+from odoo.so_result_pb2 import SalesResultModel
 
 # Create and configure logger
 import threading
@@ -56,11 +57,30 @@ def log_message_kafka(action_name, total_time, test_id, is_done):
                           "Total Time :   {1} ms \n" \
                           "Total Request :  {5} \n" \
                           "TPS : {6} ms".format(test_id, total_time_millis, (decode_time / 1000) , (prepare_db / 1000 ) , execute_db / 1000, no_request, total_time_millis/ no_request)
+                genertae_cron_result('Completed', 0, 0, 0, [0], test_id,
+                                     message)
             except Exception as e:
                 message = "Something went wrong when processing the test results for Test Id {0} \n" \
                           "More Information {1}".format(test_id, e)
             # producer.send('test_completed', message.encode())
-            producer.send(KAFKA_TEST_TOPIC,  message.encode())
+                genertae_cron_result('failed', 0, 0, 0, [0], test_id,message)
+
+def genertae_cron_result(type, so_id, so_line_ids, pt_id, ptl_ids, test_id, msg):
+    so_res_model = SalesResultModel()
+    so_res_model.so_details.id = so_id
+    so_res_model.so_details.name = "SO" + str(so_id)
+    so_res_model.so_details.sol_line_ids.append(so_line_ids)
+    so_res_model.pt_details.id = pt_id
+    so_res_model.pt_details.name = " Arisan Payment,  SO" + str(so_id)
+    so_res_model.pt_details.ptl_line_ids.extend(ptl_ids)
+    so_res_model.type = type
+    so_res_model.message = msg
+    so_res_model.test_id = test_id
+    res = so_res_model.SerializeToString()
+    send_message_kafka(res)
+
+def send_message_kafka(message):
+    producer.send(KAFKA_TEST_TOPIC, message)
 
 
 

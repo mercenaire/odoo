@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+message SalesResultModel {
+
+message SaleOrderDetailModel {
+    int32 id = 1;
+    string name = 2;
+    repeated int32 sol_line_ids = 3;
+}
+
+message PaymentTermDetailModel {
+    int32 id = 1;
+    string name = 2;
+    repeated int32 ptl_line_ids = 3;
+}
+
+     string type = 1;
+     int32 test_id = 2;
+     SaleOrderDetailModel so_details = 3;
+     PaymentTermDetailModel pt_details = 4;
+     string message = 5;
+}

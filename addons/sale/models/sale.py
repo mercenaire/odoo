@@ -10,6 +10,7 @@ import threading
 from werkzeug.urls import url_encode
 
 from odoo.so_pb2 import SalesModel
+from odoo.so_result_pb2 import SalesResultModel
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, AccessError
@@ -58,8 +59,10 @@ class SaleOrder(models.Model):
     def do_something_for_ruma(self, message):
         with api.Environment.manage():
             try:
+
                 new_cr = self.pool.cursor()
                 self = self.with_env(self.env(cr=new_cr))
+                ptl_ids = []
                 value = ""
                 sequence = 0
                 so_model = SalesModel()
@@ -101,21 +104,23 @@ class SaleOrder(models.Model):
                           so_pyt_create = self.env['account.payment.term.line'].create(
                                             {'days': (pyt_days * (1 + i)), 'payment_id': so_pyt_terms.id, 'sequence': sequence, 'value': value,
                                             'value_amount': float(total_price / pyt_ins)})
+                          ptl_ids.append(so_pyt_create.id)
 
                       so_update_result = super(SaleOrder, self.with_context({
                           'mail_create_nolog': True,
                           'mail_notrack': True,
                           'mail_create_nosubscribe': True
                       })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
-                      print(so_model.is_done)
                       odoo.tools.log_message_kafka("2", (datetime.now() - startTimer).microseconds, so_model.test_id, so_model.is_done)
                       new_cr.close()
+                      if so_model.is_done== False:
+                        odoo.tools.genertae_cron_result('success',sales_order_result.id, so_line_ordered.id, so_pyt_terms.id , ptl_ids, so_model.test_id, "Successfully Created")
                       return sales_order_result.id
                 else:
+                      odoo.tools.genertae_cron_result('failed', 0, 0, 0, [0], so_model.test_id, "Model Undefined")
                       return 0
             except Exception as e:
-                print(e)
-
+                odoo.tools.genertae_cron_result('failed', 0, 0, 0,[0], so_model.test_id, "Something Went Wrong, When Creating Order for {0}".format(so_model.partner_detail.id))
 
     @api.depends('order_line.price_total')
     def _amount_all(self):
