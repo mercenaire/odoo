@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+import "proto_oms.proto";
+
+option java_package = "com.mapan.boronjai.request";
+option java_outer_classname = "Request";
+
+message RequestCreateOrder {
+    bool is_done = 5;
+    string request_id = 1;
+    Order data = 2;
+}
+
+message RequestOrderDetailByOrderNumber {
+    string request_id = 1;
+    string order_number = 2;
+}
+
+message RequestOrder {
+    string request_id = 1;
+    int32  status = 3;
+    string note = 4;
+    Order data = 2;
+}
+
+message RequestPaymentOrder {
+    string request_id = 1;
+    int32  status = 3;
+    string note = 4;
+    PaymentOrder data = 2;
+}
+
+message RequestShipmentOrder {
+    string request_id = 1;
+    int32  status = 3;
+    string note = 4;
+    ShipmentOrder data = 2;
+}
+
+message RequestShipmentOrderPackage {
+    string request_id = 1;
+    int32  status = 3;
+    string note = 4;
+    ShipmentOrderPackage data = 2;
+}
+
+message RequestCommitUpdateOrder {
+    string request_id = 1;
+    Order old = 2;
+    Order new = 3;
+}
+
+message RequestCommitUpdatePaymentOrder {
+    string request_id = 1;
+    PaymentOrder old = 2;
+    PaymentOrder new = 3;
+}
+
+message RequestCommitUpdateShipmentOrder {
+    string request_id = 1;
+    ShipmentOrder old = 2;
+    ShipmentOrder new = 3;
+}
+
+message RequestCommitUpdateShipmentOrderPackage {
+    string request_id = 1;
+    ShipmentOrderPackage old = 2;
+    ShipmentOrderPackage new = 3;
+}
+
+message RequestUpdateOrderPayment {
+    string request_id = 1;
+    PaymentData data = 2;
+}
+
+message RequestUpdateOrderShipment {
+    string request_id = 1;
+    ShipmentData data = 2;
+}
+
+message RequestOrderLineItem {
+    string request_id = 1;
+    int32  status = 3;
+    string note = 4;
+    OrderLineItem data = 2;
+}
+
+message RequestSettlement {
+    string request_id = 1;
+    Settlement data = 2;
+}
+

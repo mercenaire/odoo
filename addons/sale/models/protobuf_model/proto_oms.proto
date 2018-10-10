@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+option java_package = "com.mapan.boronjai.oms";
+option java_outer_classname = "Oms";
+
+message PaymentData {
+    double total_payment = 1;
+    string reference_number =2;
+    string order_number = 3;
+    string updated_by = 4;
+    int64 payment_date = 5;
+    string payment_channel = 6;
+    string sales_channel = 7;
+    string settlement_channel = 8;
+}
+
+
+message PaymentInstallment{
+    int32 no_of_installments=1;
+    int32 interval_days=2;
+}
+
+message ShipmentData {
+    string status = 1;
+    string updated_by = 2;
+    string order_number = 3;
+    string reference_number = 4;
+    int64  delivery_date = 5;
+    string waybill_number = 6;
+}
+
+message OrderNote {
+    string notes = 1;
+    int64 created_time = 2;
+    string order_id = 3;
+}
+
+message Order {
+    string id = 1;
+    string customer_id = 2;
+    string customer_type = 3;
+    double total_invoice_amount = 4;
+    string order_type = 5;
+    string payment_status = 6;
+    string order_status = 7;
+    SalesPerson sales_person = 8;
+    int64 expected_delivery_date = 9;
+    int64 actual_delivery_date = 10;
+    int64 shipment_date = 11;
+    bool need_payment = 12;
+    bool need_shipping = 13;
+    PaymentChannel payment_channel = 14;
+    repeated OrderLine order_lines = 15;
+    string order_number = 16;
+    double total_price = 17;
+    double total_tax = 18;
+    string sales_channel = 19;
+    string delivery_status = 20;
+    Address shipment_address = 21;
+    Address billing_address = 22;
+    PaymentMethod payment_method = 23;
+    string parent_order = 24;
+    int64 payment_date = 25;
+    string reference_number = 26;
+    string created_by = 27;
+    string updated_by = 28;
+    int64 created_time = 29;
+    int64 updated_time = 30;
+    Contact secondary_contact = 31;
+    int64 order_time = 32;
+    repeated OrderNote notes = 33;
+    PaymentInstallment payment_installment = 34;
+}
+
+message OrderLine {
+    string id = 13;
+    string order_id = 15;
+    string item_name = 14;
+    string item_sku = 1;
+    int32  qty = 2;
+    double price = 3;
+    double invoice_amount = 4;
+    double agent_incentive = 16;
+    int32 tax = 5;
+    double unit_price = 6;
+    string uom = 7;
+    double discount_amount = 8;
+    int64 shipment_date = 9;
+    int64 expected_delivery_date = 10;
+    int64 actual_delivery_date = 11;
+    Address shipping_address = 12;
+}
+
+message OrderLineItem {
+    string id = 14;
+    string item_sku = 1;
+    string order_line_id = 2;
+    string waybill_number = 3;
+    string status =  4;
+    string serial_number = 5;
+    int64 shipment_date = 6;
+    int64 expected_delivery_date = 7;
+    int64 actual_delivery_date = 8;
+    ShippingChannel shipping_channel = 9;
+    string created_by = 10;
+    string updated_by = 11;
+    int64 created_time = 12;
+    int64 updated_time = 13;
+}
+
+message Address {
+    string address = 1;
+    string postal_code = 2;
+    string phone = 3;
+    string city = 4;
+    string province = 5;
+    string country = 6;
+    string subdistrict = 7;
+    string village = 8;
+    int32 rt = 9;
+    int32 rw = 10;
+    string address_description = 11;
+    string email = 12;
+    string first_name = 13;
+    string last_name = 14;
+}
+
+message SalesPerson {
+    string sales_person_id = 1;
+    string sales_person_name = 2;
+}
+
+message ShippingChannel {
+    string channel = 1;
+    double cost = 2;
+    ShippingMethod shipping_method = 3;
+}
+
+message ShippingMethod {
+    string method = 1;
+    double cost = 2;
+}
+
+message PaymentMethod {
+    string name = 1;
+}
+
+message PaymentChannel {
+    string name = 1;
+}
+
+message PaymentOrder {
+    string id = 15;
+    string order_number = 1;
+    string reference_number = 2;
+    double total_payment = 5;
+    double amount_paid = 6;
+    string payment_type = 3;
+    string payment_status = 4;
+    string channel_type = 13;
+    string payment_channel = 14;
+    string status = 16;
+    string sales_channel = 19;
+    int64 due_date = 7;
+    int64 paid_date = 8;
+    string created_by = 9;
+    string updated_by = 10;
+    int64 created_time = 11;
+    int64 updated_time = 12;
+    string settlement_status = 17;
+    int64 settlement_date = 18;
+}
+
+
+message ShipmentOrder {
+    string id = 1;
+    string order_number = 2;
+    string delivery_status = 3;
+    repeated ShipmentOrderLine shipment_order_lines = 4;
+    string sales_channel = 5;
+    Address shipment_address = 6;
+    string reference_number = 7;
+    int64 shipment_date = 8;
+    int64 expected_delivery_date = 9;
+    int64 actual_delivery_date = 10;
+    string created_by = 11;
+    string updated_by = 12;
+    int64 created_time = 13;
+    int64 updated_time = 14;
+}
+
+message ShipmentOrderLine {
+    string id = 8;
+    string shipment_order_id = 9;
+    string item_name = 10;
+    string item_sku = 1;
+    int32  qty = 2;
+    int64 shipment_date = 3;
+    int64 expected_delivery_date = 4;
+    int64 actual_delivery_date = 5;
+    Address shipping_address = 6;
+    string uom = 7;
+}
+
+message ShipmentOrderPackage {
+   string id = 8;
+   string shipment_order_id = 1;
+   string order_number = 14;
+   string reference_number = 15;
+   ShippingChannel shipping_channel = 9;
+   string waybill_number = 2;
+   Address shipment_address = 3;
+   repeated ShipmentOrderItem shipment_order_items = 4;
+   double cost = 5;
+   string delivery_status = 6;
+   Address shipment_origin = 7;
+   string created_by = 10;
+   string updated_by = 11;
+   int64 created_time = 12;
+   int64 updated_time = 13;
+   int64 shipment_date = 16;
+   int64 expected_delivery_date = 17;
+   int64 actual_delivery_date = 18;
+}
+
+message ShipmentOrderItem {
+    string serial_number = 1;
+    string item_sku = 2;
+    string item_name = 3;
+    string description = 4;
+}
+
+message LineItemNote {
+    string notes = 1;
+    int64 created_time = 2;
+    string line_item_id = 3;
+}
+
+message Contact {
+    string name = 1;
+    string phone_number = 2;
+}
+
+message Settlement {
+    int64 settlement_date = 1;
+    double paid_amount = 2;
+    string settlement_channel = 3;
+    string order_number = 4;
+    string reference_number = 5;
+    string updated_by = 6;
+    int64 updated_time = 7;
+    int64 created_time = 8;
+    string created_by = 9;
+}
+
+

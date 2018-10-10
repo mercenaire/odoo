@@ -11,6 +11,8 @@ from werkzeug.urls import url_encode
 
 from odoo.so_pb2 import SalesModel
 from odoo.so_result_pb2 import SalesResultModel
+import odoo.proto_oms_pb2 as oms
+import odoo.proto_result_pb2 as result
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, AccessError
@@ -65,25 +67,26 @@ class SaleOrder(models.Model):
                 ptl_ids = []
                 value = ""
                 sequence = 0
-                so_model = SalesModel()
+                so_model = result.RequestCreateOrder()
                 startTimer = datetime.now()
                 so_model.ParseFromString(bytes(message))
-                odoo.tools.log_message_kafka("1", (datetime.now() - startTimer).microseconds, so_model.test_id, False)
-                threading.current_thread().test_id = so_model.test_id
+                odoo.tools.log_message_kafka("1", (datetime.now() - startTimer).microseconds, int(so_model.request_id), False)
+                threading.current_thread().test_id = int(so_model.request_id)
                 startTimer = datetime.now()
                 total_price = 0.0
+
                 if so_model is not None:
-                      pyt_ins = so_model.payment_details.installments
-                      pyt_days = so_model.payment_details.interval_days
-                      sales_order_result = self.create({'partner_id': so_model.partner_detail.id})
+                      pyt_ins = so_model.data.payment_installment.no_of_installments
+                      pyt_days = so_model.data.payment_installment.interval_days
+                      sales_order_result = self.create({'partner_id': int(so_model.data.customer_id)})
                       pro_search_result = self.env['product.product'].sudo().search_read(
-                          domain=[('default_code', '=', so_model.product_details.sku)], fields=['id', 'name'])
+                          domain=[('default_code', '=', so_model.data.order_lines[0].item_sku)], fields=['id', 'name'])
                       so_line_ordered = self.env['sale.order.line'].create({
                           'name': pro_search_result[0]['name'],
                           'product_id': pro_search_result[0]['id'],
-                          'qty_to_invoice': so_model.product_details.qty,
+                          'qty_to_invoice': so_model.data.order_lines[0].qty,
                           'order_id': sales_order_result.id,
-                          'order_partner_id': so_model.partner_detail.id
+                          'order_partner_id': so_model.data.customer_id
                       })
                       order_lines_total = self.env['sale.order.line'].sudo().search_read(
                           domain=[('order_id', '=', sales_order_result.id)], fields=["price_total"])
@@ -111,16 +114,17 @@ class SaleOrder(models.Model):
                           'mail_notrack': True,
                           'mail_create_nosubscribe': True
                       })).search([('id', '=', sales_order_result.id)]).write({'state': 'sale', 'payment_term_id': so_pyt_terms.id})
-                      odoo.tools.log_message_kafka("2", (datetime.now() - startTimer).microseconds, so_model.test_id, so_model.is_done)
+                      odoo.tools.log_message_kafka("2", (datetime.now() - startTimer).microseconds, int(so_model.request_id), so_model.is_done)
                       new_cr.close()
-                      if so_model.is_done== False:
-                        odoo.tools.genertae_cron_result('success',sales_order_result.id, so_line_ordered.id, so_pyt_terms.id , ptl_ids, so_model.test_id, "Successfully Created")
+                      if so_model.is_done == False:
+                        odoo.tools.genertae_cron_result('success',sales_order_result.id, so_line_ordered.id, so_pyt_terms.id , ptl_ids, int(so_model.request_id), "Successfully Created")
                       return sales_order_result.id
                 else:
-                      odoo.tools.genertae_cron_result('failed', 0, 0, 0, [0], so_model.test_id, "Model Undefined")
+                      odoo.tools.genertae_cron_result('failed', 0, 0, 0, [0], int(so_model.request_id), "Model Undefined")
                       return 0
             except Exception as e:
-                odoo.tools.genertae_cron_result('failed', 0, 0, 0,[0], so_model.test_id, "Something Went Wrong, When Creating Order for {0}".format(so_model.partner_detail.id))
+                print(e)
+                odoo.tools.genertae_cron_result('failed', 0, 0, 0,[0], int(so_model.request_id), "Something Went Wrong, When Creating Order for {0}".format(so_model.data.customer_id))
 
     @api.depends('order_line.price_total')
     def _amount_all(self):
