@@ -80,7 +80,12 @@ def genertae_cron_result(type, so_id, so_line_ids, pt_id, ptl_ids, test_id, msg)
     send_message_kafka(res)
 
 def send_message_kafka(message):
-    producer.send(KAFKA_TEST_TOPIC, message)
+    try:
+        print(producer)
+        producer.send(KAFKA_TEST_TOPIC, message).get(timeout=30)
+        producer.flush()
+    except Exception as e:
+        print(e)
 
 
 
