@@ -9,7 +9,7 @@ from odoo.so_result_pb2 import SalesResultModel
 # Create and configure logger
 import threading
 
-logging.basicConfig(filename="performance.log",
+logging.basicConfig(filename="performance_kafka.log",
                     format='%(asctime)s %(message)s',
                     filemode='w')
 
@@ -35,7 +35,7 @@ def log_message_kafka(action_name, total_time, test_id, is_done):
             try:
                 time.sleep(6)
                 no_request = decode_time = execute_db = prepare_db = 0
-                f = open("performance.log", "r")
+                f = open("performance_kafka.log", "r")
                 log_content = f.read()
                 f.close()
                 pattern = re.compile(r'PER+:' + str(test_id) + '+:(\d)' + '+:(\d*)')
