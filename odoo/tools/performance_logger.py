@@ -40,7 +40,10 @@ def log_message_kafka(action_name, total_time, test_id, is_done):
                 f.close()
                 pattern = re.compile(r'PER+:' + str(test_id) + '+:(\d)' + '+:(\d*)')
                 matches = re.findall(pattern, log_content)
+                logger.info(matches)
                 for match in matches:
+                    logger.info(test_id)
+                    logger.info(match[0])
                     action_type = int(match[0])
                     if action_type == 1:
                         decode_time += int(match[1])
@@ -83,9 +86,7 @@ def send_message_kafka(message):
     try:
         producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN], api_version=(0, 10, 1))
         producer.send(KAFKA_TEST_TOPIC, message).get(timeout=30)
-        logger.info("reached send")
         producer.flush()
-        logger.info("reached flush")
     except Exception as e:
         print(e)
 
