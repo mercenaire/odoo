@@ -19,7 +19,7 @@ logger = logging.getLogger()
 # Setting the threshold of logger to DEBUG
 logger.setLevel(logging.INFO)
 
-producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN], api_version=(0, 10, 1))
+
 
 # def log_message(action_name, total_time):
 #     if hasattr(threading.current_thread(), 'test_id'):
@@ -81,9 +81,11 @@ def genertae_cron_result(type, so_id, so_line_ids, pt_id, ptl_ids, test_id, msg)
 
 def send_message_kafka(message):
     try:
-        logger.info(producer)
+        producer = KafkaProducer(bootstrap_servers=[KAFKA_CONN], api_version=(0, 10, 1))
         producer.send(KAFKA_TEST_TOPIC, message).get(timeout=30)
+        logger.info("reached send")
         producer.flush()
+        logger.info("reached flush")
     except Exception as e:
         print(e)
 
