@@ -39,12 +39,9 @@ def log_message_kafka(action_name, total_time, test_id, is_done):
                 log_content = f.read()
                 f.close()
                 pattern = re.compile(r'PER+:' + str(test_id) + '+:(\d)' + '+:(\d*)')
-                logger.info(log_content)
                 matches = re.findall(pattern, log_content)
                 logger.info(matches)
                 for match in matches:
-                    logger.info(test_id)
-                    logger.info(match[0])
                     action_type = int(match[0])
                     if action_type == 1:
                         decode_time += int(match[1])
